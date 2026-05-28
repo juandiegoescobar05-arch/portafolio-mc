@@ -142,7 +142,7 @@ const STOCKS = [
  {t:'SNDK_T',name:'SanDisk Corporation',sector:'Tecnología',c:'#3d5a80',
   ret:3.5577548,vol:0.9551182,beta:3.562843,
   desc:'Fabricante de soluciones de almacenamiento flash (SSD, tarjetas de memoria, NAND). Escindida de Western Digital en 2025.',
-  flag:'Retorno REAL verificado vs. Yahoo Finance (40.5→1382.7, +3.310% — superciclo de memorias NAND). No es error de datos: es un outlier extremo. El cuidado es no usarlo como retorno esperado a futuro.'},
+  flag:'Rally irrepetible: +3.310% por el superciclo de memorias NAND (demanda de IA) tras escindirse de Western Digital en feb-2025. Evento cíclico extremo — no usar ese retorno como expectativa a futuro.'},
  {t:'HOOD_F',name:'Robinhood Markets',sector:'Financiero · Fintech',c:'#2a9d8f',
   ret:0.2874054,vol:0.6649355,beta:3.173970,
   desc:'Bróker digital sin comisiones; app de inversión retail (acciones, opciones, cripto). Fintech de beta muy alta.'},
@@ -326,7 +326,7 @@ S.push(`
       <table style="font-size:14px"><thead><tr><th>Port.</th><th style="text-align:center">Ret</th><th>σ</th><th>β</th><th>Sharpe</th></tr></thead>
       <tbody>${PORTS.map(p=>`<tr class="${p.n==='P3'?'rowrec':''}">
         <td class="tk">${p.n}</td><td>${pct(p.ret)}</td><td>${pct(p.sig)}</td><td>${p.beta.toFixed(2)}</td><td>${p.sharpe.toFixed(2)}</td></tr>`).join('')}</tbody></table>
-      <div class="flag" style="margin-top:16px"><b>SNDK</b> es un retorno <b>real pero irrepetible</b> (rally NAND, verificado vs. Yahoo). Domina el nivel de los retornos; el <b>ranking relativo</b> se mantiene. Ver "lectura crítica" →</div>
+      <div class="flag" style="margin-top:16px"><b>SNDK</b> tuvo un rally <b>irrepetible</b> (superciclo de memorias NAND). Domina el nivel de los retornos; el <b>ranking relativo</b> entre portafolios se mantiene. Ver "lectura crítica" →</div>
     </div>
   </div>
 </div>`);
@@ -375,7 +375,7 @@ S.push(`
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:2.5vw;flex:1;min-height:0">
     <div>
       <div class="lead" style="margin-bottom:14px">
-        El precio de SNDK es <b>real</b> — verificado contra Yahoo Finance (de $40,5 a $1.382,7; <b>+3.310%</b>, superciclo de memorias NAND). El problema no son los datos, sino usar ese <b>retorno histórico</b> como <b>retorno esperado</b>: Markowitz es hipersensible a ese insumo y por eso sobre-pondera a SNDK.
+        SNDK subió <b>+3.310%</b> (de $40,5 a $1.382,7) por el <b>superciclo de memorias NAND</b> — un rally cíclico <b>irrepetible</b>. El problema no es el dato, sino usar ese <b>retorno histórico</b> como <b>retorno esperado</b>: Markowitz es hipersensible a ese insumo y por eso sobre-pondera a SNDK.
       </div>
       <div style="color:var(--muted);font-weight:700;margin-bottom:8px;font-size:14px">Retorno esperado de SNDK → Sharpe del P3 (mismos pesos y σ)</div>
       <table style="font-size:14px"><thead><tr><th style="text-align:left">Supuesto retorno SNDK</th><th>Ret. P3</th><th>Sharpe P3</th></tr></thead>
@@ -421,7 +421,7 @@ S.push(`
     <div>
       <div style="font-weight:800;color:var(--red);margin-bottom:14px;font-size:clamp(15px,1.6vw,22px)">Puntos a revisar</div>
       <ul class="clist">
-        <li>SNDK +355.8% es <b>real</b> (verificado vs. Yahoo · superciclo NAND), pero irrepetible: no usarlo como retorno esperado a futuro.</li>
+        <li>SNDK +355.8%: rally cíclico <b>irrepetible</b> (superciclo de memorias NAND), no usarlo como retorno esperado a futuro.</li>
         <li>¿Retornos en log o convertir a efectivo (simple)?</li>
         <li>Validar TLR (4.04%) y horizonte del beta.</li>
       </ul>
