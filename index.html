@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Análisis de 10 Acciones y Construcción de Portafolio · Mercado de Capitales</title>
+<style>
+  :root{
+    --bg:#070f1f; --bg2:#0d1c36; --ink:#e8eef7; --muted:#9fb2cc;
+    --card:rgba(255,255,255,.05); --cardbrd:rgba(255,255,255,.10);
+    --excelblue:#2f6fb2; --gold:#f5b301; --green:#22c55e; --red:#ef4444;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;
+    background:radial-gradient(1200px 800px at 80% -10%,#13294d 0%,var(--bg) 55%),var(--bg);
+    color:var(--ink);overflow:hidden;
+  }
+  /* progress bar */
+  #progress{position:fixed;top:0;left:0;height:4px;background:linear-gradient(90deg,var(--excelblue),var(--gold));width:0;z-index:50;transition:width .35s ease}
+  /* deck */
+  #deck{position:relative;width:100vw;height:100vh}
+  .slide{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;
+    padding:4.2vh 5vw 8vh;opacity:0;visibility:hidden;transform:translateY(18px) scale(.99);
+    transition:opacity .5s ease,transform .5s ease;pointer-events:none}
+  .slide.active{opacity:1;visibility:visible;transform:none;pointer-events:auto}
+  .kicker{color:var(--gold);font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:clamp(11px,1.1vw,15px);margin-bottom:.6vh}
+  h1{font-size:clamp(30px,5vw,68px);line-height:1.04;font-weight:800;letter-spacing:-.5px}
+  h2{font-size:clamp(24px,3.3vw,46px);line-height:1.08;font-weight:800;letter-spacing:-.4px;margin-bottom:2.2vh}
+  .accentline{height:5px;width:160px;background:var(--gold);border-radius:3px;margin:2.4vh 0}
+  /* cover */
+  .cover-sub{font-size:clamp(15px,1.7vw,24px);color:var(--muted);margin-top:1.5vh}
+  .cover-foot{position:absolute;left:5vw;bottom:7vh}
+  .cover-foot .a{font-weight:700;font-size:clamp(14px,1.4vw,19px)}
+  .cover-foot .b{color:var(--muted);font-size:clamp(12px,1.2vw,16px);margin-top:.4vh}
+  .cover-foot .c{color:#6c84a6;font-size:clamp(10px,1vw,13px);margin-top:.9vh}
+  .glow{position:absolute;border-radius:50%;filter:blur(60px);opacity:.5;z-index:-1}
+  /* agenda */
+  .agenda{display:flex;flex-direction:column;gap:1.5vh;margin-top:1vh}
+  .arow{display:flex;align-items:center;gap:18px;opacity:0;transform:translateX(-14px);transition:.5s}
+  .active .arow{opacity:1;transform:none}
+  .anum{flex:0 0 auto;width:42px;height:42px;border-radius:11px;background:var(--excelblue);
+    display:grid;place-items:center;font-weight:800;font-size:18px;color:#fff}
+  .arow .at{font-size:clamp(15px,1.7vw,22px)}
+  /* table */
+  table{width:100%;border-collapse:collapse;font-size:clamp(11px,1.15vw,16px)}
+  thead th{background:#0c1d39;color:#fff;padding:11px 10px;text-align:center;font-weight:700;border-bottom:2px solid var(--gold)}
+  thead th:nth-child(2),thead th:nth-child(3){text-align:left}
+  tbody td{padding:9px 10px;text-align:center;border-bottom:1px solid rgba(255,255,255,.06)}
+  tbody td:nth-child(2),tbody td:nth-child(3){text-align:left}
+  tbody tr{opacity:0;transform:translateY(8px);transition:.4s}
+  .active tbody tr{opacity:1;transform:none}
+  .dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:8px;vertical-align:middle}
+  .tk{font-weight:800}
+  .pos{color:var(--green);font-weight:700}
+  .rowrec{background:rgba(245,179,1,.14)!important}
+  .rowrec td{color:#fff;font-weight:700}
+  /* layout split */
+  .split{display:grid;grid-template-columns:1.25fr .9fr;gap:3vw;align-items:center;height:100%}
+  .panel{background:var(--card);border:1px solid var(--cardbrd);border-radius:18px;padding:24px}
+  .lead{font-size:clamp(13px,1.45vw,20px);color:#cdd9ea;line-height:1.5}
+  /* metric chips */
+  .mgrid{display:flex;flex-direction:column;gap:14px}
+  .metric{background:var(--card);border:1px solid var(--cardbrd);border-left:6px solid var(--excelblue);
+    border-radius:14px;padding:14px 18px}
+  .metric .lab{font-size:clamp(11px,1.05vw,14px);color:var(--muted);font-weight:600}
+  .metric .val{font-size:clamp(24px,3vw,40px);font-weight:800;line-height:1}
+  /* stock slide head */
+  .pill{display:inline-flex;align-items:center;gap:9px;padding:7px 16px;border-radius:999px;
+    font-weight:700;font-size:clamp(12px,1.2vw,16px);color:#06101f}
+  .stk-top{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:1.5vh}
+  .stk-name{font-size:clamp(26px,3.6vw,50px);font-weight:800;letter-spacing:-.4px}
+  .stk-tk{font-weight:800;font-size:clamp(14px,1.4vw,20px);color:var(--muted)}
+  /* flag */
+  .flag{margin-top:18px;background:rgba(239,68,68,.13);border:1px solid rgba(239,68,68,.4);
+    border-left:6px solid var(--red);border-radius:12px;padding:12px 16px;color:#ffd7d7;font-size:clamp(11px,1.1vw,15px)}
+  .note{background:rgba(245,179,1,.1);border-left:5px solid var(--gold);border-radius:10px;
+    padding:11px 16px;color:#f3e2b8;font-size:clamp(11px,1.1vw,15px);margin-top:14px}
+  /* svg charts */
+  svg{width:100%;height:100%;overflow:visible}
+  .gridln{stroke:rgba(255,255,255,.08);stroke-width:1}
+  .axis{stroke:rgba(255,255,255,.35);stroke-width:1.2}
+  .axlab{fill:var(--muted);font-size:12px}
+  .pt{cursor:pointer;transition:r .2s,filter .2s}
+  .pt:hover{filter:brightness(1.25) drop-shadow(0 0 8px currentColor)}
+  .ptlab{fill:#dfe8f4;font-size:11px;font-weight:700;pointer-events:none}
+  /* tooltip */
+  #tip{position:fixed;z-index:60;pointer-events:none;background:#0c1d39;border:1px solid var(--cardbrd);
+    border-radius:10px;padding:10px 13px;font-size:13px;opacity:0;transition:opacity .15s;box-shadow:0 8px 24px rgba(0,0,0,.5);max-width:240px}
+  #tip b{font-size:14px}
+  /* legend */
+  .legend{display:flex;flex-wrap:wrap;gap:10px 16px;margin-top:14px}
+  .lgi{display:flex;align-items:center;gap:7px;font-size:clamp(10px,1vw,13px);color:#cdd9ea}
+  /* bars */
+  .barrow{display:grid;grid-template-columns:120px 1fr 70px;align-items:center;gap:12px;margin:11px 0}
+  .barrow .bn{font-weight:700;font-size:clamp(12px,1.2vw,16px)}
+  .bartrack{background:rgba(255,255,255,.07);border-radius:8px;height:22px;overflow:hidden}
+  .barfill{height:100%;width:0;border-radius:8px;transition:width 1s cubic-bezier(.2,.8,.2,1)}
+  .barval{font-weight:700;font-size:clamp(11px,1.1vw,15px);text-align:right}
+  /* p3 weights list */
+  .wlist{display:flex;flex-direction:column;gap:9px;margin-top:6px}
+  .wrow{display:grid;grid-template-columns:14px 90px 1fr 52px;align-items:center;gap:10px;font-size:clamp(11px,1.1vw,15px)}
+  .wtrack{background:rgba(255,255,255,.07);border-radius:6px;height:14px;overflow:hidden}
+  .wfill{height:100%;width:0;border-radius:6px;transition:width .9s ease}
+  /* conclusions */
+  .clist{display:flex;flex-direction:column;gap:1.3vh;font-size:clamp(13px,1.4vw,20px);color:#cdd9ea}
+  .clist li{list-style:none;padding-left:30px;position:relative}
+  .clist li::before{content:"▸";position:absolute;left:0;color:var(--gold);font-weight:800}
+  .disc{position:absolute;left:0;right:0;bottom:0;background:#0c1d39;padding:14px;text-align:center;
+    color:var(--muted);font-size:clamp(10px,1vw,13px);border-top:1px solid var(--cardbrd)}
+  /* nav */
+  #nav{position:fixed;bottom:18px;right:24px;z-index:40;display:flex;align-items:center;gap:12px}
+  .navbtn{width:42px;height:42px;border-radius:50%;border:1px solid var(--cardbrd);background:var(--card);
+    color:#fff;font-size:18px;cursor:pointer;display:grid;place-items:center;transition:.2s;backdrop-filter:blur(8px)}
+  .navbtn:hover{background:var(--excelblue);border-color:var(--excelblue)}
+  #counter{font-size:14px;color:var(--muted);min-width:54px;text-align:center;font-variant-numeric:tabular-nums}
+  #dots{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:40;display:flex;gap:7px;max-width:70vw;flex-wrap:wrap;justify-content:center}
+  .dotn{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.22);cursor:pointer;transition:.2s}
+  .dotn.on{background:var(--gold);transform:scale(1.35)}
+  .hint{position:fixed;bottom:20px;left:24px;z-index:40;color:#54688a;font-size:12px}
+  .hint kbd{background:var(--card);border:1px solid var(--cardbrd);border-radius:5px;padding:1px 7px;font-size:11px}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<div id="deck"></div>
+<div id="tip"></div>
+<div id="dots"></div>
+<div id="nav">
+  <span id="counter">1 / 18</span>
+  <button class="navbtn" id="prev" title="Anterior (←)">‹</button>
+  <button class="navbtn" id="next" title="Siguiente (→)">›</button>
+</div>
+<div class="hint"><kbd>←</kbd> <kbd>→</kbd> para navegar · <kbd>F</kbd> pantalla completa</div>
+
+<script>
+/* ============ DATOS (tomados del Excel, sin modificar) ============ */
+const TLR = 0.0404;
+const STOCKS = [
+ {t:'SNDK_T',name:'SanDisk Corporation',sector:'Tecnología',c:'#3b82f6',
+  ret:3.5577548,vol:0.9551182,beta:3.562843,
+  desc:'Fabricante de soluciones de almacenamiento flash (SSD, tarjetas de memoria, NAND). Escindida de Western Digital en 2025.',
+  flag:'Retorno atípico: el precio pasa de 40.5 a 1382.7 en el Excel. Dato a verificar — infla los retornos de todos los portafolios.'},
+ {t:'HOOD_F',name:'Robinhood Markets',sector:'Financiero · Fintech',c:'#22c55e',
+  ret:0.2874054,vol:0.6649355,beta:3.173970,
+  desc:'Bróker digital sin comisiones; app de inversión retail (acciones, opciones, cripto). Fintech de beta muy alta.'},
+ {t:'NEM_M',name:'Newmont Corporation',sector:'Materiales · Oro',c:'#f59e0b',
+  ret:0.8674122,vol:0.4601393,beta:1.067160,
+  desc:'Mayor productora de oro del mundo; minería de metales preciosos. Activo refugio con beta cercana a 1.'},
+ {t:'CVNA_AU',name:'Carvana Co.',sector:'Consumo · Auto',c:'#f97316',
+  ret:0.1573671,vol:0.5875123,beta:2.162999,
+  desc:'Plataforma e-commerce de autos usados ("vending machines" de autos). Consumo discrecional cíclico.'},
+ {t:'FIX_IND',name:'Comfort Systems USA',sector:'Industrial',c:'#06b6d4',
+  ret:1.4980447,vol:0.5112598,beta:2.261433,
+  desc:'Contratista de sistemas mecánicos y HVAC; impulsada por el boom de data centers y construcción industrial.'},
+ {t:'DG_RET',name:'Dollar General',sector:'Consumo básico · Retail',c:'#facc15',
+  ret:0.1431841,vol:0.3706341,beta:0.514098,
+  desc:'Cadena de tiendas de descuento de bajo precio en EE.UU. rural. Retail defensivo, la beta más baja del grupo.'},
+ {t:'HWM_AER',name:'Howmet Aerospace',sector:'Aeroespacial',c:'#6366f1',
+  ret:0.5304246,vol:0.2996633,beta:1.017464,
+  desc:'Componentes de ingeniería para aeroespacial (álabes de turbina, sujetadores). La menor volatilidad del grupo.'},
+ {t:'GEV_ENG',name:'GE Vernova',sector:'Energía',c:'#14b8a6',
+  ret:0.9474171,vol:0.4743049,beta:1.829834,
+  desc:'Negocio de energía escindido de GE: generación, eólica y redes eléctricas. Tema de electrificación.'},
+ {t:'WBD_CM',name:'Warner Bros. Discovery',sector:'Comunicaciones · Media',c:'#ef4444',
+  ret:1.0963120,vol:0.4552996,beta:0.862935,
+  desc:'Conglomerado de medios y entretenimiento (HBO, Discovery, Warner). Retorno alto con beta defensiva (0.86).'},
+ {t:'ALB_MT',name:'Albemarle Corporation',sector:'Materiales · Litio',c:'#a855f7',
+  ret:1.1798995,vol:0.6146900,beta:1.491505,
+  desc:'Mayor productora de litio del mundo; químicos especializados, insumo de baterías de vehículos eléctricos.'},
+];
+const COL = {}; STOCKS.forEach(s=>COL[s.t]=s.c);
+const PORTS = [
+ {n:'P1',ret:0.0404,sig:0.2558562,beta:0.828633,note:'Ancla TLR (retorno mínimo)'},
+ {n:'P2',ret:0.9197387,sig:0.2494258,beta:1.410907,note:'Balanceado / diversificado'},
+ {n:'P3',ret:1.7990774,sig:0.4249400,beta:2.096087,note:'Agresivo medido — RECOMENDADO'},
+ {n:'P4',ret:2.6784161,sig:0.6288571,beta:2.657880,note:'Agresivo concentrado (60% SNDK)'},
+ {n:'P5',ret:3.5577548,sig:0.9551182,beta:3.562843,note:'100% SNDK (máx. riesgo)'},
+ {n:'Mín.Var',ret:0.5791577,sig:0.2041641,beta:1.112717,note:'Mínima varianza'},
+];
+PORTS.forEach(p=>p.sharpe=(p.ret-TLR)/p.sig);
+const P3W = [
+ ['SNDK_T',0.2981229],['NEM_M',0.1414477],['FIX_IND',0.1604294],
+ ['HWM_AER',0.10],['GEV_ENG',0.10],['WBD_CM',0.10],['ALB_MT',0.10],
+];
+
+const pct=(x,d=1)=>(x*100).toFixed(d)+'%';
+const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+
+/* ============ CONSTRUCCIÓN DE SLIDES ============ */
+const S=[];
+
+// 1 COVER
+S.push(`
+<div class="slide" data-anim="cover">
+  <div class="glow" style="width:420px;height:420px;background:#2f6fb2;top:-120px;right:6vw"></div>
+  <div class="glow" style="width:340px;height:340px;background:#f5b301;bottom:-120px;left:30vw;opacity:.28"></div>
+  <div class="kicker">Mercado de Capitales · Universidad de La Salle</div>
+  <h1>Análisis de 10 Acciones<br><span style="color:var(--gold)">y Construcción de Portafolio</span></h1>
+  <div class="accentline"></div>
+  <div class="cover-sub">Universo multisectorial · Optimización media–varianza (Markowitz)</div>
+  <div class="cover-foot">
+    <div class="a">Juan Diego Escobar Valbuena</div>
+    <div class="b">Datos: precios diarios 15-may-2025 a 14-may-2026 · Benchmark: S&amp;P 500</div>
+    <div class="c">Presentación interactiva — usa las flechas del teclado para navegar</div>
+  </div>
+</div>`);
+
+// 2 AGENDA
+const agendaItems=['Universo de inversión: 10 acciones de distintos sectores',
+ 'Mapa riesgo–retorno del universo','Ficha individual por acción (sector, negocio, retorno, β, σ)',
+ 'Metodología de optimización (Markowitz)','Comparativa de portafolios de la frontera eficiente',
+ 'Portafolio recomendado y justificación del perfil de riesgo','Conclusiones y puntos a revisar'];
+S.push(`
+<div class="slide">
+  <div class="kicker">Hoja de ruta</div><h2>Agenda</h2>
+  <div class="agenda">${agendaItems.map((it,i)=>`
+    <div class="arow" style="transition-delay:${i*70}ms"><div class="anum">${i+1}</div><div class="at">${it}</div></div>`).join('')}
+  </div>
+</div>`);
+
+// 3 UNIVERSO (tabla)
+S.push(`
+<div class="slide">
+  <div class="kicker">10 acciones · 10 sectores · benchmark S&amp;P 500</div><h2>Universo de Inversión</h2>
+  <table><thead><tr>
+    <th>Ticker</th><th>Empresa</th><th>Sector</th><th>Ret. anual</th><th>Volatilidad σ</th><th>Beta</th>
+  </tr></thead><tbody>
+  ${STOCKS.map((s,i)=>`<tr style="transition-delay:${i*45}ms">
+    <td><span class="dot" style="background:${s.c}"></span><span class="tk" style="color:${s.c}">${s.t}</span></td>
+    <td>${s.name}</td><td style="color:var(--muted)">${s.sector}</td>
+    <td class="pos">${pct(s.ret)}</td><td>${pct(s.vol)}</td><td>${s.beta.toFixed(2)}</td></tr>`).join('')}
+  </tbody></table>
+  <div class="note">Cifras tomadas directamente del libro Excel; no se recalcularon ni ajustaron. Retornos = log-retornos anualizados.</div>
+</div>`);
+
+// 4 SCATTER
+S.push(`
+<div class="slide">
+  <div class="kicker">Volatilidad (eje X) vs. retorno anual log (eje Y)</div><h2>Mapa Riesgo–Retorno</h2>
+  <div style="display:grid;grid-template-columns:1fr 280px;gap:2vw;flex:1;min-height:0">
+    <div style="position:relative"><div id="scatter" style="height:62vh"></div></div>
+    <div class="panel">
+      <div style="font-weight:800;color:var(--gold);margin-bottom:10px">Lectura rápida</div>
+      <ul class="clist" style="font-size:14px;gap:11px">
+        <li>Arriba-derecha = más retorno y más riesgo (SNDK, FIX).</li>
+        <li>Abajo-izquierda = defensivas (DG, HWM).</li>
+        <li>WBD: retorno alto con β baja (0.86).</li>
+        <li>Combinar perfiles distintos = diversificar.</li>
+      </ul>
+      <div class="legend">${STOCKS.map(s=>`<span class="lgi"><span class="dot" style="background:${s.c};margin:0"></span>${s.t}</span>`).join('')}</div>
+    </div>
+  </div>
+</div>`);
+
+// 5-14 PER STOCK
+STOCKS.forEach(s=>{
+  const sharpe=((s.ret-TLR)/s.vol).toFixed(2);
+  S.push(`
+  <div class="slide" data-stock="${s.t}">
+    <div class="stk-top">
+      <span class="pill" style="background:${s.c}">● ${s.sector}</span>
+      <span class="stk-tk">${s.t}</span>
+    </div>
+    <div class="stk-name" style="color:${s.c}">${s.name}</div>
+    <div class="accentline" style="background:${s.c};width:120px;margin:1.6vh 0 2.4vh"></div>
+    <div class="split">
+      <div>
+        <div style="font-weight:800;color:${s.c};margin-bottom:10px;font-size:clamp(15px,1.5vw,20px)">Perfil de la compañía</div>
+        <div class="lead">${s.desc}</div>
+        <div class="lead" style="margin-top:18px;color:var(--muted)">
+          Retorno anual (log) de <b style="color:var(--green)">${pct(s.ret)}</b>,
+          β = <b style="color:#fff">${s.beta.toFixed(2)}</b> frente al S&amp;P 500,
+          volatilidad anual de <b style="color:#fff">${pct(s.vol)}</b>.
+          Relación retorno/riesgo ≈ <b style="color:var(--gold)">${sharpe}</b>.
+        </div>
+        ${s.flag?`<div class="flag"><b>A revisar:</b> ${s.flag}</div>`:''}
+      </div>
+      <div class="mgrid">
+        <div class="metric" style="border-left-color:${s.c}">
+          <div class="lab">Retorno anual (log)</div>
+          <div class="val" style="color:var(--green)"><span class="cnt" data-to="${s.ret*100}" data-suf="%">0%</span></div></div>
+        <div class="metric" style="border-left-color:${s.c}">
+          <div class="lab">Volatilidad anual (σ)</div>
+          <div class="val"><span class="cnt" data-to="${s.vol*100}" data-suf="%">0%</span></div></div>
+        <div class="metric" style="border-left-color:${s.c}">
+          <div class="lab">Beta (vs. S&amp;P 500)</div>
+          <div class="val" style="color:${s.c}"><span class="cnt" data-to="${s.beta}" data-dec="2">0</span></div></div>
+      </div>
+    </div>
+  </div>`);
+});
+
+// 15 METODOLOGÍA
+S.push(`
+<div class="slide">
+  <div class="kicker">Modelo media–varianza de Markowitz</div><h2>Metodología de Optimización</h2>
+  <ul class="clist">
+    <li>Insumos: precios diarios de un año (15-may-2025 a 14-may-2026) por acción.</li>
+    <li>Retornos: log-retornos diarios anualizados; betas estimadas frente al S&amp;P 500.</li>
+    <li>Riesgo: matriz de varianzas–covarianzas y desviación estándar anualizada (σ).</li>
+    <li>Optimización: pesos Wᵢ que maximizan retorno por unidad de riesgo, sujeto a ΣWᵢ = 1.</li>
+    <li>Tasa libre de riesgo (TLR) = 4.04% para el ratio de Sharpe = (R − TLR) / σ.</li>
+    <li>Se construyen 5 puntos de la frontera (P1→P5) más el portafolio de mínima varianza.</li>
+  </ul>
+  <div class="note" style="margin-top:3vh">Todas las cifras provienen del libro Excel; esta presentación solo las visualiza, no las modifica.</div>
+</div>`);
+
+// 16 COMPARATIVA (barras animadas + tabla)
+const maxRet=Math.max(...PORTS.map(p=>p.ret));
+S.push(`
+<div class="slide">
+  <div class="kicker">Frontera eficiente · TLR = 4.04%</div><h2>Comparativa de Portafolios</h2>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:2.5vw;flex:1;min-height:0">
+    <div>
+      <div style="color:var(--muted);font-weight:700;margin-bottom:10px">Retorno anual (log) — barra · σ y β en tabla</div>
+      ${PORTS.map((p,i)=>`<div class="barrow">
+        <div class="bn" style="${p.n==='P3'?'color:var(--gold)':''}">${p.n}</div>
+        <div class="bartrack"><div class="barfill" data-w="${(p.ret/maxRet*100).toFixed(1)}"
+          style="background:${p.n==='P3'?'linear-gradient(90deg,#f5b301,#ffd75e)':'linear-gradient(90deg,#2f6fb2,#5aa0e0)'}"></div></div>
+        <div class="barval">${pct(p.ret)}</div></div>`).join('')}
+    </div>
+    <div>
+      <table style="font-size:14px"><thead><tr><th>Port.</th><th style="text-align:center">Ret</th><th>σ</th><th>β</th><th>Sharpe</th></tr></thead>
+      <tbody>${PORTS.map(p=>`<tr class="${p.n==='P3'?'rowrec':''}">
+        <td class="tk">${p.n}</td><td>${pct(p.ret)}</td><td>${pct(p.sig)}</td><td>${p.beta.toFixed(2)}</td><td>${p.sharpe.toFixed(2)}</td></tr>`).join('')}</tbody></table>
+      <div class="flag" style="margin-top:16px">Los retornos están inflados por <b>SNDK</b> (dato atípico). El <b>ranking relativo</b> entre portafolios se mantiene válido.</div>
+    </div>
+  </div>
+</div>`);
+
+// 17 RECOMENDADO P3 (dona + métricas + pesos)
+const p3=PORTS[2];
+S.push(`
+<div class="slide">
+  <div class="kicker">Perfil: agresivo pero medido · diversificado en 7 acciones</div>
+  <h2>Portafolio Recomendado — <span style="color:var(--gold)">P3</span></h2>
+  <div style="display:grid;grid-template-columns:340px 1fr 230px;gap:2.2vw;flex:1;min-height:0;align-items:center">
+    <div style="position:relative"><div id="donut" style="height:46vh"></div></div>
+    <div>
+      <div class="wlist">
+        ${P3W.map(([t,w])=>`<div class="wrow">
+          <span class="dot" style="background:${COL[t]};margin:0"></span>
+          <span class="tk" style="color:${COL[t]}">${t}</span>
+          <span class="wtrack"><span class="wfill" data-w="${(w/0.30*100).toFixed(0)}" style="background:${COL[t]}"></span></span>
+          <span style="text-align:right;font-weight:700">${pct(w,1)}</span></div>`).join('')}
+      </div>
+      <div style="margin-top:18px;display:flex;gap:12px;flex-wrap:wrap">
+        <div class="metric" style="flex:1;border-left-color:var(--green)"><div class="lab">Retorno (log)</div><div class="val" style="color:var(--green);font-size:clamp(18px,2vw,28px)">${pct(p3.ret)}</div></div>
+        <div class="metric" style="flex:1"><div class="lab">Volatilidad σ</div><div class="val" style="font-size:clamp(18px,2vw,28px)">${pct(p3.sig)}</div></div>
+        <div class="metric" style="flex:1;border-left-color:var(--excelblue)"><div class="lab">Beta</div><div class="val" style="color:var(--excelblue);font-size:clamp(18px,2vw,28px)">${p3.beta.toFixed(2)}</div></div>
+        <div class="metric" style="flex:1;border-left-color:var(--gold)"><div class="lab">Sharpe</div><div class="val" style="color:var(--gold);font-size:clamp(18px,2vw,28px)">${p3.sharpe.toFixed(2)}</div></div>
+      </div>
+    </div>
+    <div class="panel" style="background:#0c1d39">
+      <div style="font-weight:800;color:var(--gold);margin-bottom:10px">¿Por qué P3?</div>
+      <ul class="clist" style="font-size:13px;gap:10px">
+        <li>Sharpe 4.14, casi el máximo de la frontera.</li>
+        <li>Peso máximo ~30%: no apuesta todo a un nombre.</li>
+        <li>7 sectores combinados.</li>
+        <li>β≈2.1: agresivo pero acotado vs. P4/P5.</li>
+        <li>Mejor que P4: igual retorno/riesgo con menos concentración.</li>
+      </ul>
+    </div>
+  </div>
+</div>`);
+
+// 18 CONCLUSIONES
+S.push(`
+<div class="slide">
+  <div class="kicker">Cierre</div><h2>Conclusiones y Puntos a Revisar</h2>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:3vw">
+    <div>
+      <div style="font-weight:800;color:var(--green);margin-bottom:14px;font-size:clamp(15px,1.6vw,22px)">Conclusiones</div>
+      <ul class="clist">
+        <li>Universo bien diversificado: 10 sectores con perfiles de riesgo distintos.</li>
+        <li>Trade-off claro retorno–riesgo a lo largo de la frontera.</li>
+        <li>P3 = mejor relación retorno/riesgo manteniendo diversificación → agresivo pero medido.</li>
+        <li>Alternativas: P2 (conservador) y P4 (agresivo concentrado).</li>
+      </ul>
+    </div>
+    <div>
+      <div style="font-weight:800;color:var(--red);margin-bottom:14px;font-size:clamp(15px,1.6vw,22px)">Puntos a revisar</div>
+      <ul class="clist">
+        <li>SNDK_T marca +355.8% (precio 40.5→1382.7): verificar la serie de precios.</li>
+        <li>¿Retornos en log o convertir a efectivo (simple)?</li>
+        <li>Validar TLR (4.04%) y horizonte del beta.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="disc">Contenido educativo · no constituye asesoría financiera personalizada · datos del Excel sin modificar.</div>
+</div>`);
+
+/* ============ RENDER ============ */
+const deck=document.getElementById('deck');
+deck.innerHTML=S.join('');
+const slides=[...document.querySelectorAll('.slide')];
+const dotsWrap=document.getElementById('dots');
+slides.forEach((_,i)=>{const d=document.createElement('div');d.className='dotn';d.onclick=()=>go(i);dotsWrap.appendChild(d);});
+const dots=[...document.querySelectorAll('.dotn')];
+let cur=0;
+
+function go(i){
+  cur=Math.max(0,Math.min(slides.length-1,i));
+  slides.forEach((s,k)=>s.classList.toggle('active',k===cur));
+  dots.forEach((d,k)=>d.classList.toggle('on',k===cur));
+  document.getElementById('counter').textContent=(cur+1)+' / '+slides.length;
+  document.getElementById('progress').style.width=((cur)/(slides.length-1)*100)+'%';
+  animate(slides[cur]);
+}
+function next(){go(cur+1)} function prev(){go(cur-1)}
+document.getElementById('next').onclick=next;
+document.getElementById('prev').onclick=prev;
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' '){next();e.preventDefault();}
+  else if(e.key==='ArrowLeft'||e.key==='PageUp'){prev();}
+  else if(e.key==='Home'){go(0);} else if(e.key==='End'){go(slides.length-1);}
+  else if(e.key==='f'||e.key==='F'){if(!document.fullscreenElement)document.documentElement.requestFullscreen();else document.exitFullscreen();}
+});
+// swipe
+let tx=0;
+deck.addEventListener('touchstart',e=>tx=e.touches[0].clientX,{passive:true});
+deck.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-tx;if(Math.abs(dx)>50)dx<0?next():prev();},{passive:true});
+
+/* ============ ANIMACIONES POR SLIDE ============ */
+function animate(slide){
+  // count-up
+  slide.querySelectorAll('.cnt').forEach(el=>{
+    const to=parseFloat(el.dataset.to),dec=el.dataset.dec?+el.dataset.dec:1,suf=el.dataset.suf||'';
+    let t0=null;const dur=900;
+    function step(ts){if(!t0)t0=ts;const p=Math.min(1,(ts-t0)/dur);const e=1-Math.pow(1-p,3);
+      el.textContent=(to*e).toFixed(dec)+suf;if(p<1)requestAnimationFrame(step);}
+    el.textContent='0'+suf;requestAnimationFrame(step);
+  });
+  // bars
+  slide.querySelectorAll('.barfill,.wfill').forEach(el=>{el.style.width='0';requestAnimationFrame(()=>requestAnimationFrame(()=>el.style.width=el.dataset.w+'%'));});
+  // scatter / donut (draw once)
+  if(slide.querySelector('#scatter')&&!slide.dataset.drawn){drawScatter();slide.dataset.drawn=1;}
+  if(slide.querySelector('#donut')&&!slide.dataset.drawn){drawDonut();slide.dataset.drawn=1;}
+}
+
+/* ============ SCATTER SVG ============ */
+function drawScatter(){
+  const host=document.getElementById('scatter');const W=host.clientWidth,H=host.clientHeight;
+  const m={l:64,r:20,t:18,b:54};
+  const xMin=0.2,xMax=1.0,yMin=0,yMax=3.8;
+  const X=v=>m.l+(v-xMin)/(xMax-xMin)*(W-m.l-m.r);
+  const Y=v=>H-m.b-(v-yMin)/(yMax-yMin)*(H-m.t-m.b);
+  let g=`<svg viewBox="0 0 ${W} ${H}">`;
+  // gridlines X
+  for(let gx=0.2;gx<=1.0001;gx+=0.2){g+=`<line class="gridln" x1="${X(gx)}" y1="${m.t}" x2="${X(gx)}" y2="${H-m.b}"/>
+    <text class="axlab" x="${X(gx)}" y="${H-m.b+20}" text-anchor="middle">${(gx*100).toFixed(0)}%</text>`;}
+  // gridlines Y
+  for(let gy=0;gy<=3.8;gy+=0.5){g+=`<line class="gridln" x1="${m.l}" y1="${Y(gy)}" x2="${W-m.r}" y2="${Y(gy)}"/>
+    <text class="axlab" x="${m.l-10}" y="${Y(gy)+4}" text-anchor="end">${(gy*100).toFixed(0)}%</text>`;}
+  // axes
+  g+=`<line class="axis" x1="${m.l}" y1="${H-m.b}" x2="${W-m.r}" y2="${H-m.b}"/>
+      <line class="axis" x1="${m.l}" y1="${m.t}" x2="${m.l}" y2="${H-m.b}"/>
+      <text class="axlab" x="${(W+m.l)/2}" y="${H-8}" text-anchor="middle" style="font-size:13px;fill:#9fb2cc">Volatilidad anual (σ)</text>
+      <text class="axlab" x="-${(H)/2}" y="16" transform="rotate(-90)" text-anchor="middle" style="font-size:13px;fill:#9fb2cc">Retorno anual (log)</text>`;
+  // points
+  STOCKS.forEach((s,i)=>{
+    const cx=X(s.vol),cy=Y(s.ret);
+    g+=`<g class="pt" style="color:${s.c}" data-i="${i}">
+      <circle cx="${cx}" cy="${cy}" r="0" fill="${s.c}" stroke="#0b1426" stroke-width="2">
+        <animate attributeName="r" from="0" to="9" dur="0.5s" begin="${i*60}ms" fill="freeze" calcMode="spline" keySplines="0.2 0.8 0.2 1"/></circle>
+      <text class="ptlab" x="${cx+12}" y="${cy+4}">${s.t}</text></g>`;
+  });
+  g+='</svg>';host.innerHTML=g;
+  // tooltips
+  const tip=document.getElementById('tip');
+  host.querySelectorAll('.pt').forEach(el=>{
+    const s=STOCKS[+el.dataset.i];
+    el.addEventListener('mousemove',e=>{tip.style.opacity=1;tip.style.left=(e.clientX+14)+'px';tip.style.top=(e.clientY+14)+'px';
+      tip.innerHTML=`<b style="color:${s.c}">${s.t}</b> · ${s.name}<br>Ret ${pct(s.ret)} · σ ${pct(s.vol)} · β ${s.beta.toFixed(2)}`;});
+    el.addEventListener('mouseleave',()=>tip.style.opacity=0);
+  });
+}
+
+/* ============ DONUT SVG ============ */
+function polar(cx,cy,r,a){return[cx+r*Math.cos(a),cy+r*Math.sin(a)];}
+function seg(cx,cy,ro,ri,a0,a1){
+  const[x0,y0]=polar(cx,cy,ro,a0),[x1,y1]=polar(cx,cy,ro,a1);
+  const[x2,y2]=polar(cx,cy,ri,a1),[x3,y3]=polar(cx,cy,ri,a0);
+  const large=(a1-a0)>Math.PI?1:0;
+  return`M${x0} ${y0} A${ro} ${ro} 0 ${large} 1 ${x1} ${y1} L${x2} ${y2} A${ri} ${ri} 0 ${large} 0 ${x3} ${y3} Z`;
+}
+function drawDonut(){
+  const host=document.getElementById('donut');const W=host.clientWidth,H=host.clientHeight;
+  const cx=W/2,cy=H/2,ro=Math.min(W,H)/2-8,ri=ro*0.58;
+  let a=-Math.PI/2;let g=`<svg viewBox="0 0 ${W} ${H}">`;
+  P3W.forEach(([t,w],i)=>{
+    const a1=a+w*2*Math.PI;
+    g+=`<path d="${seg(cx,cy,ro,ri,a,a1)}" fill="${COL[t]}" stroke="#070f1f" stroke-width="2" opacity="0">
+      <animate attributeName="opacity" from="0" to="1" dur="0.4s" begin="${i*90}ms" fill="freeze"/></path>`;
+    a=a1;
+  });
+  g+=`<text x="${cx}" y="${cy-6}" text-anchor="middle" style="fill:#fff;font-size:22px;font-weight:800">P3</text>
+      <text x="${cx}" y="${cy+18}" text-anchor="middle" style="fill:#9fb2cc;font-size:13px">7 acciones</text></svg>`;
+  host.innerHTML=g;
+}
+
+window.addEventListener('resize',()=>{const a=slides[cur];if(a){a.dataset.drawn='';animate(a);}});
+window.addEventListener('hashchange',()=>{const n=parseInt(location.hash.slice(1));if(!isNaN(n))go(n-1);});
+const start=parseInt(location.hash.slice(1));
+go(!isNaN(start)?start-1:0);
+</script>
+</body>
+</html>
