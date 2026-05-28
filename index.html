@@ -129,7 +129,7 @@
 <div id="tip"></div>
 <div id="dots"></div>
 <div id="nav">
-  <span id="counter">1 / 18</span>
+  <span id="counter">1 / 19</span>
   <button class="navbtn" id="prev" title="Anterior (←)">‹</button>
   <button class="navbtn" id="next" title="Siguiente (→)">›</button>
 </div>
@@ -142,7 +142,7 @@ const STOCKS = [
  {t:'SNDK_T',name:'SanDisk Corporation',sector:'Tecnología',c:'#3d5a80',
   ret:3.5577548,vol:0.9551182,beta:3.562843,
   desc:'Fabricante de soluciones de almacenamiento flash (SSD, tarjetas de memoria, NAND). Escindida de Western Digital en 2025.',
-  flag:'Retorno atípico: el precio pasa de 40.5 a 1382.7 en el Excel. Dato a verificar — infla los retornos de todos los portafolios.'},
+  flag:'Retorno REAL verificado vs. Yahoo Finance (40.5→1382.7, +3.310% — superciclo de memorias NAND). No es error de datos: es un outlier extremo. El cuidado es no usarlo como retorno esperado a futuro.'},
  {t:'HOOD_F',name:'Robinhood Markets',sector:'Financiero · Fintech',c:'#2a9d8f',
   ret:0.2874054,vol:0.6649355,beta:3.173970,
   desc:'Bróker digital sin comisiones; app de inversión retail (acciones, opciones, cripto). Fintech de beta muy alta.'},
@@ -212,7 +212,7 @@ S.push(`
 const agendaItems=['Universo de inversión: 10 acciones de distintos sectores',
  'Mapa riesgo–retorno del universo','Ficha individual por acción (sector, negocio, retorno, β, σ)',
  'Metodología de optimización (Markowitz)','Comparativa de portafolios de la frontera eficiente',
- 'Portafolio recomendado y justificación del perfil de riesgo','Conclusiones y puntos a revisar'];
+ 'Portafolio recomendado y justificación del perfil de riesgo','Lectura crítica: sensibilidad del modelo y SNDK','Conclusiones y puntos a revisar'];
 S.push(`
 <div class="slide">
   <div class="kicker">Hoja de ruta</div><h2>Agenda</h2>
@@ -326,7 +326,7 @@ S.push(`
       <table style="font-size:14px"><thead><tr><th>Port.</th><th style="text-align:center">Ret</th><th>σ</th><th>β</th><th>Sharpe</th></tr></thead>
       <tbody>${PORTS.map(p=>`<tr class="${p.n==='P3'?'rowrec':''}">
         <td class="tk">${p.n}</td><td>${pct(p.ret)}</td><td>${pct(p.sig)}</td><td>${p.beta.toFixed(2)}</td><td>${p.sharpe.toFixed(2)}</td></tr>`).join('')}</tbody></table>
-      <div class="flag" style="margin-top:16px">Los retornos están inflados por <b>SNDK</b> (dato atípico). El <b>ranking relativo</b> entre portafolios se mantiene válido.</div>
+      <div class="flag" style="margin-top:16px"><b>SNDK</b> es un retorno <b>real pero irrepetible</b> (rally NAND, verificado vs. Yahoo). Domina el nivel de los retornos; el <b>ranking relativo</b> se mantiene. Ver "lectura crítica" →</div>
     </div>
   </div>
 </div>`);
@@ -367,7 +367,44 @@ S.push(`
   </div>
 </div>`);
 
-// 18 CONCLUSIONES
+// 18 LECTURA CRÍTICA (sensibilidad de Markowitz al retorno esperado)
+S.push(`
+<div class="slide">
+  <div class="kicker">Lectura crítica · sensibilidad del modelo</div>
+  <h2>El dato es real — el riesgo es <span style="color:var(--gold)">extrapolarlo</span></h2>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:2.5vw;flex:1;min-height:0">
+    <div>
+      <div class="lead" style="margin-bottom:14px">
+        El precio de SNDK es <b>real</b> — verificado contra Yahoo Finance (de $40,5 a $1.382,7; <b>+3.310%</b>, superciclo de memorias NAND). El problema no son los datos, sino usar ese <b>retorno histórico</b> como <b>retorno esperado</b>: Markowitz es hipersensible a ese insumo y por eso sobre-pondera a SNDK.
+      </div>
+      <div style="color:var(--muted);font-weight:700;margin-bottom:8px;font-size:14px">Retorno esperado de SNDK → Sharpe del P3 (mismos pesos y σ)</div>
+      <table style="font-size:14px"><thead><tr><th style="text-align:left">Supuesto retorno SNDK</th><th>Ret. P3</th><th>Sharpe P3</th></tr></thead>
+      <tbody>
+        <tr class="rowrec"><td style="text-align:left">+355.8% (histórico, crudo)</td><td>179.9%</td><td>4.14</td></tr>
+        <tr><td style="text-align:left">+50%</td><td>88.7%</td><td>1.99</td></tr>
+        <tr><td style="text-align:left">+23.6% (CAPM: 4% + 3,56·5,5%)</td><td>80.9%</td><td>1.81</td></tr>
+        <tr><td style="text-align:left">0%</td><td>73.8%</td><td>1.64</td></tr>
+      </tbody></table>
+      <div class="note">El Sharpe de 4.14 es un artefacto de extrapolar un rally único. Con un retorno esperado realista, el P3 cae a un Sharpe <b>creíble de ~1,8</b> — sigue siendo bueno, pero honesto.</div>
+    </div>
+    <div>
+      <div style="color:var(--muted);font-weight:700;margin-bottom:8px;font-size:14px">Disciplina de diversificación: capar SNDK al 15%</div>
+      <table style="font-size:14px"><thead><tr><th style="text-align:left">Portafolio</th><th>SNDK</th><th>σ</th><th>Sharpe</th></tr></thead>
+      <tbody>
+        <tr><td style="text-align:left">P3 crudo (histórico)</td><td>29.8%</td><td>42.5%</td><td>4.14</td></tr>
+        <tr><td style="text-align:left">P3 + retorno SNDK sano (25%)</td><td>29.8%</td><td>42.5%</td><td>1.82</td></tr>
+        <tr class="rowrec"><td style="text-align:left">P3 capado + retorno sano</td><td>15.0%</td><td>33.9%</td><td>2.63</td></tr>
+      </tbody></table>
+      <ul class="clist" style="font-size:14px;gap:10px;margin-top:14px">
+        <li>Capar SNDK al 15% baja la σ de 42,5% → <b>33,9%</b> y reduce la concentración en un solo nombre.</li>
+        <li>Con un retorno esperado realista, el P3 disciplinado rinde <b>Sharpe ~2,6</b>: fuerte y defendible.</li>
+        <li>La recomendación se sostiene, pero el <b>nivel</b> de retorno/Sharpe se lee con criterio, no al pie de la letra.</li>
+      </ul>
+    </div>
+  </div>
+</div>`);
+
+// 19 CONCLUSIONES
 S.push(`
 <div class="slide">
   <div class="kicker">Cierre</div><h2>Conclusiones y Puntos a Revisar</h2>
@@ -384,7 +421,7 @@ S.push(`
     <div>
       <div style="font-weight:800;color:var(--red);margin-bottom:14px;font-size:clamp(15px,1.6vw,22px)">Puntos a revisar</div>
       <ul class="clist">
-        <li>SNDK_T marca +355.8% (precio 40.5→1382.7): verificar la serie de precios.</li>
+        <li>SNDK +355.8% es <b>real</b> (verificado vs. Yahoo · superciclo NAND), pero irrepetible: no usarlo como retorno esperado a futuro.</li>
         <li>¿Retornos en log o convertir a efectivo (simple)?</li>
         <li>Validar TLR (4.04%) y horizonte del beta.</li>
       </ul>
